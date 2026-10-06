@@ -1,0 +1,54 @@
+extends CharacterBody2D
+
+var alvo:Node2D = null
+@export var velocidade:int = 300
+@export var velocidade_patrulha:int = 200
+
+@export var pontos_de_patrulha:Array[Node2D]
+
+var index_ponto_atual:int = 0
+
+enum estados{
+	procurando,
+	perseguindo
+}
+
+var estado_atual:estados = estados.procurando
+
+
+func _physics_process(delta: float) -> void:
+	
+	match estado_atual:
+		estados.procurando:
+			Patrulhar()
+		estados.perseguindo:
+			Perseguir()
+	move_and_slide()
+
+func Perseguir():
+	var direction = (alvo.position - position).normalized()
+	velocity = direction * velocidade
+	look_at(alvo.position)
+	
+func Patrulhar():
+	var destino = pontos_de_patrulha[index_ponto_atual]
+	var direction_patrulha = (destino.global_position - global_position).normalized()
+	
+	velocity = direction_patrulha * velocidade_patrulha
+	look_at(destino.global_position)
+	
+	if global_position.distance_to(destino.global_position) < 10.0:
+			index_ponto_atual += 1
+			if index_ponto_atual >= pontos_de_patrulha.size():
+				index_ponto_atual = 0
+
+func _on_area_2d_body_entered(body: Node2D) -> void:
+	if body.is_in_group("jogador"):
+		alvo = body
+		estado_atual = estados.perseguindo
+
+
+func _on_area_2d_body_exited(body: Node2D) -> void:
+	if body.is_in_group("jogador") and body == alvo:
+		estado_atual = estados.procurando
+		alvo = null
